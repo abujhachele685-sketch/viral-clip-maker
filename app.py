@@ -1,62 +1,25 @@
 import streamlit as st
-import google.generativeai as genai
-import yt_dlp
+from pytube import YouTube
 import os
-from moviepy.editor import VideoFileClip
 
-# আপনার দেওয়া API Key
-genai.configure(api_key="AIzaSyCtSq9O0903w-GdJeQHHBqD2fTQ088QhCk")
+st.title("YouTube Downloader")
 
-st.set_page_config(page_title="AI Viral Clip Maker", page_icon="🔥")
-st.title("🔥 AI Viral Clip Maker (Hiclip Style)")
-st.write("বড় ভিডিও থেকে ১ মিনিটের ভাইরাল ক্লিপ, টাইটেল ও ফর্মুলা তৈরি করুন।")
+url = st.text_input("YouTube URL টা এখানে দিন:")
 
-url = st.text_input("YouTube ভিডিওর লিঙ্ক দিন:")
-
-if st.button("ভাইরাল ক্লিপ ও ফর্মুলা তৈরি করো"):
-    if url:
-        try:
-            with st.spinner("AI ভিডিও বিশ্লেষণ করছে... (ইউটিউব বাধা এড়ানোর চেষ্টা চলছে)"):
-                # ১. ইউটিউব ভিডিও ডাউনলোড (আপডেটেড সেটিংস)
-                ydl_opts = {
-                    'format': 'best[ext=mp4]',
-                    'outtmpl': 'main_video.mp4',
-                    'noplaylist': True,
-                    'quiet': True,
-                    'no_warnings': True,
-                    # নিচের এই লাইনটি ৪0৩ এরর এড়াতে সাহায্য করবে
-                    'referer': 'https://www.youtube.com/',
-                }
-                with yt_dlp.YoutubeDL(ydl_opts) as ydl:
-                    ydl.download([url])
-                
-                # ২. Gemini AI বিশ্লেষণ
-                video_file = genai.upload_file(path="main_video.mp4")
-                model = genai.GenerativeModel("gemini-1.5-flash")
-                
-                prompt = """এই ভিডিওটি বিশ্লেষণ করো। ১টি ভাইরাল অংশ খুঁজে বের করো যা ১ মিনিটের কম। 
-                আমাকে ভাইরাল টাইটেল এবং কেন এটি ভাইরাল হবে (ফর্মুলা) জানাও।"""
-                
-                response = model.generate_content([prompt, video_file])
-                
-                # ৩. ভিডিও ক্লিপ কাটা
-                full_video = VideoFileClip("main_video.mp4")
-                clip_duration = min(59, full_video.duration) # ১ মিনিটের কম
-                clip = full_video.subclip(0, clip_duration)
-                clip.write_videofile("viral_short.mp4", codec="libx264")
-                
-                # ৪. ফলাফল দেখানো
-                st.success("কাজ সম্পন্ন হয়েছে!")
-                st.subheader("🚀 AI বিশ্লেষণ:")
-                st.info(response.text)
-                st.video("viral_short.mp4")
-                
-                with open("viral_short.mp4", "rb") as f:
-                    st.download_button("গ্যালারিতে সেভ করুন", f, file_name="viral_clip.mp4")
-                
-                full_video.close()
-                os.remove("main_video.mp4")
-
-        except Exception as e:
-            st.error(f"দুঃখিত, কোনো সমস্যা হয়েছে: {e}")
-                
+if url:
+    try:
+        # এটি দিলে স্ক্রিনে গুগল লগইন কোড আসবে
+        yt = YouTube(url, use_oauth=True, allow_oauth_cache=True)
+        
+        st.write(f"ভিডিওর নাম: **{yt.title}**")
+        stream = yt.streams.get_highest_resolution()
+        
+        if st.button("ডাউনলোড শুরু করুন"):
+            with st.spinner("ডাউনলোড হচ্ছে..."):
+                file_path = stream.download()
+                with open(file_path, "rb") as f:
+                    st.download_button("ফোনে সেভ করুন", f, file_name=os.path.basename(file_path))
+                st.success("সফলভাবে ডাউনলোড হয়েছে!")
+    except Exception as e:
+        st.error(f"এরর হয়েছে: {e}")
+        
