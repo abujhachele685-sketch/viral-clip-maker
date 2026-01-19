@@ -1,1 +1,6 @@
+streamlit
 pytube
+moviepy
+numpy
+scipy
+
